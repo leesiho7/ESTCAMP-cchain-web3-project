@@ -16,6 +16,11 @@ import lombok.RequiredArgsConstructor;
 public class MainController {
 	
 	private final DocumentRepository documentRepository;
+
+	@GetMapping("/")
+	public String index() {
+		return "intro"; // intro.html 실행 (지구본/이더리움 로고 화면)
+	}
 	
 	@GetMapping("/main")
 	public String mainPage(Model model) {
