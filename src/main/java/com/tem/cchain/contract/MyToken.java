@@ -77,7 +77,7 @@ public class MyToken extends Contract {
 
     static {
         _addresses = new HashMap<String, String>();
-        _addresses.put("5777", "0x6c9925F8B8F8a0FDC4774B99878492E2a05046e1");
+        _addresses.put("5777", "0x97944cC45ebabB370DC5244B52F25Aa4DbB7587c");
     }
 
     @Deprecated
