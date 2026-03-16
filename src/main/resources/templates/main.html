@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>C-Chain | Contribution Workspace</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .slide-panel { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-        .doc-completed { background-color: #f3f4f6 !important; opacity: 0.7; border-color: #d1d5db !important; pointer-events: none; position: relative; }
-        .completed-badge { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); border: 3px solid #9ca3af; color: #9ca3af; padding: 4px 12px; font-weight: 900; text-transform: uppercase; border-radius: 8px; z-index: 10; background: rgba(255, 255, 255, 0.8); }
+        .doc-completed { background-color: #f3f4f6 !important; opacity: 0.7; pointer-events: none; position: relative; }
+        .completed-badge { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); border: 3px solid #9ca3af; color: #9ca3af; padding: 4px 12px; font-weight: 900; border-radius: 8px; z-index: 10; background: rgba(255, 255, 255, 0.8); }
     </style>
 </head>
 <body class="bg-gray-50 h-screen overflow-hidden">
@@ -26,95 +26,117 @@
                 <p class="text-[10px] text-gray-400 uppercase font-bold">My Rewards</p>
                 <p class="text-sm font-bold text-blue-600"><span id="top-balance">0.0</span> OMT</p>
             </div>
-            <button id="connect-wallet-btn" onclick="connectWallet()" class="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm">
+            <button id="wallet-btn" onclick="connectWallet()" class="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" class="w-5 h-5">
-                <span id="wallet-status" class="text-sm">지갑 연결</span>
+                <span id="wallet-addr-display" class="text-sm">지갑 연결</span>
             </button>
-            <button onclick="location.href='/mypage'" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-black transition">마이페이지</button>
-            <button onclick="logoutAll()" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition">로그아웃</button>
+            <button onclick="location.href='/mypage'" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-black">마이페이지</button>
+            <button onclick="logoutAll()" class="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm">로그아웃</button>
         </div>
     </header>
 
     <main class="p-8 h-[calc(100vh-73px)] overflow-y-auto">
-        <div class="max-w-6xl mx-auto text-center py-20" th:if="${documents == null}">
-            <p class="text-gray-400">불러올 문서가 없습니다.</p>
+        <div class="max-w-6xl mx-auto">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900">검증 대기 중인 기술 문서</h2>
+                <p class="text-gray-500 mt-2">번역을 완료하고 OMT 보상을 획득하세요.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div th:each="doc : ${documents}" 
+                     th:data-id="${doc.id}" 
+                     th:data-source="${doc.sourceName}"
+                     th:data-title="${doc.titleCn}"
+                     th:data-content="${doc.contentCn}"
+                     onclick="openWorkspace(this)" 
+                     th:classappend="${doc.status == 'COMPLETED' ? 'doc-completed' : ''}"
+                     class="group bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl transition-all cursor-pointer relative">
+                    <div th:if="${doc.status == 'COMPLETED'}" class="completed-badge">Completed</div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2" th:text="${doc.titleCn}">제목</h3>
+                    <p class="text-sm text-gray-500 line-clamp-2" th:text="${doc.summary}">요약...</p>
+                </div>
+            </div>
         </div>
     </main>
 
-    <div id="tx-loader" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center text-white">
-        <div class="w-20 h-20 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-        <p class="mt-6 font-bold">C-Chain 네트워크에 기록 중...</p>
+    <div id="workspace" class="slide-panel fixed inset-y-0 right-0 w-[92%] bg-white z-50 shadow-2xl transform translate-x-full flex flex-col">
+        <div class="px-6 py-4 border-b flex justify-between items-center">
+            <button onclick="closeWorkspace()" class="text-gray-500 hover:text-black"><i class="fa-solid fa-arrow-left mr-2"></i> 돌아가기</button>
+            <h2 id="ws-title" class="font-bold text-gray-900">문서 제목</h2>
+            <button onclick="submitWork()" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg">작성 완료 및 검증 요청</button>
+        </div>
+        <div class="flex-1 flex overflow-hidden">
+            <div class="flex-1 border-r bg-gray-50 p-10 overflow-y-auto" id="original-content"></div>
+            <div class="flex-1 p-10 bg-blue-50/10">
+                <textarea id="translation-input" class="w-full h-full bg-transparent border-none focus:ring-0 text-xl resize-none" placeholder="번역 내용을 작성하세요..."></textarea>
+            </div>
+        </div>
     </div>
 
-<script>
-    // 💡 중요: 본인의 OMT 컨트랙트 주소로 꼭 바꾸세요!
-    const OMT_ADDRESS = "0x여러분의_OMT_주소_입력"; 
-    const OMT_ABI = [
-        "function balanceOf(address owner) view returns (uint256)",
-        "function decimals() view returns (uint8)"
-    ];
+    <div id="tx-loader" class="fixed inset-0 bg-slate-900/80 z-[100] hidden flex-col items-center justify-center text-white">
+        <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <p class="mt-4 font-bold">C-Chain 네트워크 통신 중...</p>
+    </div>
 
-    let provider;
-    let signer;
-    let currentDocId = null;
+    <script th:inline="javascript">
+        // 1. 필수 설정 (본인의 환경에 맞게 자동 주입되거나 수정)
+        const OMT_ADDR = /*[[${@environment.getProperty('token.contract.address')}]]*/ '0x000...'; 
+        const OMT_ABI = ["function balanceOf(address owner) view returns (uint256)", "function decimals() view returns (uint8)"];
+        let currentDocId = null;
 
-    // 1. 지갑 연결 함수
-    async function connectWallet() {
-        if (typeof window.ethereum !== 'undefined') {
-            try {
-                // 메타마스크 연결 요청
-                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-                const account = accounts[0];
-                
-                // 버튼 텍스트 변경 (앞뒤 주소만 표시)
-                document.getElementById('wallet-status').innerText = 
-                    account.substring(0, 6) + "..." + account.substring(account.length - 4);
-                
-                // 잔액 업데이트 실행
-                updateOMTBalance(account);
-            } catch (error) {
-                console.error("지갑 연결 실패:", error);
-            }
-        } else {
-            alert("메타마스크를 설치해주세요!");
+        // 2. 지갑 연결 및 잔액 업데이트
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                    const account = accounts[0];
+                    document.getElementById('wallet-addr-display').innerText = account.substring(0,6) + "..." + account.substring(38);
+                    
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    const contract = new ethers.Contract(OMT_ADDR, OMT_ABI, provider);
+                    const balance = await contract.balanceOf(account);
+                    const decimals = await contract.decimals();
+                    
+                    document.getElementById('top-balance').innerText = ethers.utils.formatUnits(balance, decimals);
+                } catch (err) { console.error(err); }
+            } else { alert("메타마스크를 설치해주세요!"); }
         }
-    }
 
-    // 2. OMT 잔액 조회 함수
-    async function updateOMTBalance(walletAddress) {
-        try {
-            provider = new ethers.providers.Web3Provider(window.ethereum);
-            const contract = new ethers.Contract(OMT_ADDRESS, OMT_ABI, provider);
-            
-            const balance = await contract.balanceOf(walletAddress);
-            const decimals = await contract.decimals();
-            
-            // 웨이(Wei) 단위를 읽기 쉬운 숫자로 변환
-            const formattedBalance = ethers.utils.formatUnits(balance, decimals);
-            
-            // 화면에 반영 (소수점 2자리까지)
-            document.getElementById('top-balance').innerText = parseFloat(formattedBalance).toFixed(2);
-        } catch (error) {
-            console.error("잔액 조회 중 에러:", error);
-            document.getElementById('top-balance').innerText = "Error";
+        // 3. 워크스페이스 제어
+        function openWorkspace(el) {
+            currentDocId = el.dataset.id;
+            document.getElementById('ws-title').innerText = el.dataset.title;
+            document.getElementById('original-content').innerText = el.dataset.content;
+            document.getElementById('workspace').classList.remove('translate-x-full');
         }
-    }
 
-    // 페이지 로드 시 이미 연결되어 있다면 자동으로 잔액 조회
-    window.addEventListener('load', async () => {
-        if (window.ethereum) {
-            const accounts = await ethereum.request({ method: 'eth_accounts' });
-            if (accounts.length > 0) {
-                connectWallet();
+        function closeWorkspace() {
+            document.getElementById('workspace').classList.add('translate-x-full');
+        }
+
+        // 4. 번역 제출 (백엔드 API 연동)
+        async function submitWork() {
+            const content = document.getElementById('translation-input').value;
+            if(!content) return alert("내용을 입력하세요.");
+            
+            if(confirm("검증을 요청하시겠습니까?")) {
+                document.getElementById('tx-loader').classList.replace('hidden', 'flex');
+                try {
+                    const res = await fetch('/api/translation/submit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ documentId: currentDocId, contentKr: content })
+                    });
+                    if(res.ok) { alert("제출 완료!"); location.reload(); }
+                } catch (e) { alert("통신 에러"); }
+                finally { document.getElementById('tx-loader').classList.replace('flex', 'hidden'); }
             }
         }
-    });
 
-    // (기존 openWorkspace, submitWork 등 함수들 아래에 유지)
-    function openWorkspace(element) { /* 기존 코드 */ }
-    function closeWorkspace() { /* 기존 코드 */ }
-    async function submitWork() { /* 기존 코드 */ }
-    function logoutAll() { /* 기존 코드 */ }
-</script>
+        function logoutAll() { location.href = '/logout'; }
+
+        // 페이지 로드 시 지갑 상태 체크
+        window.onload = () => { if(window.ethereum && ethereum.selectedAddress) connectWallet(); };
+    </script>
 </body>
 </html>
