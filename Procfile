@@ -1,1 +1,1 @@
-web: java -jar target/*.jar --server.port=${PORT}
+web: java -jar target/cchain-0.1.jar --server.port=${PORT}

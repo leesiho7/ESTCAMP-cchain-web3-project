@@ -14,7 +14,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 public class CchainApplication {
 
     public static void main(String[] args) {
-        // 프로젝트 실행!
+        // 프로젝트 실행 및 최신 배포 반영 트리거
         SpringApplication.run(CchainApplication.class, args);
     }
 
